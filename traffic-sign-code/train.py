@@ -22,15 +22,16 @@ from sklearn.model_selection import train_test_split
 sys.path.append('..')
 from net.lenet import LeNet
 from net.alexnet import AlexNet
-from net.vgg import Vgg11, Vgg16
+from net.vgg import Vgg11, Vgg16, Vgg16_keras
 from net.googlenetv1 import GoogLeNetV1
 from net.resnet import ResNet
+from net.densenet import DenseNet
 
 def args_parse():
     ap = argparse.ArgumentParser()
     ap.add_argument('-dtest', '--dataset_test', required=True, help='Path to input dataset_test')
     ap.add_argument('-dtrain', '--dataset_train', required=True, help='Path to input dataset_train')
-    ap.add_argument('-m', '--model', required=True, help='Which classifier do you want to use: lenet, alexnet, vgg11, vgg16, googlenetv1, resnet')
+    ap.add_argument('-m', '--model', required=True, help='Which classifier do you want to use: lenet, alexnet, vgg11, vgg16, googlenetv1, resnet, densenet')
 #     ap.add_argument('-p', '--plot', required=True, default='plot.png', help='Path to output accuracy/loss plot')
     args = vars(ap.parse_args())
     return args
@@ -82,11 +83,13 @@ def train(aug, trainX, trainY, testX, testY, args, norm_size):
         model = Vgg11.build(norm_size, norm_size, 3, CLASS_NUM)
     elif args['model'] == 'vgg16':
 #         model = Vgg16.build(norm_size, norm_size, 3, CLASS_NUM)
-        model = VGG16(include_top=True, weights=None, classes=CLASS_NUM)
+        model = Vgg16_keras.build(norm_size, norm_size, 3, CLASS_NUM)
     elif args['model'] == 'googlenetv1':
         model = GoogLeNetV1.build(norm_size, norm_size, 3, CLASS_NUM)
     elif args['model'] == 'resnet':
         model = ResNet.build(norm_size, norm_size, 3, CLASS_NUM)
+    elif args['model'] == 'densenet':
+        model = DenseNet.build(norm_size, norm_size, 3, CLASS_NUM)
         
     opt = Adam(lr=INIT_LR, decay=INIT_LR/EPOCHS)
 #     opt = SGD(lr=1e-4)
@@ -137,6 +140,8 @@ if __name__ == '__main__':
         norm_size = 224
     elif model_name == 'resnet':
         norm_size = 224
+    elif model_name == 'densenet':
+        norm_size = 32
     else:
         print('[ERROR] model name {} can not recognzied'.format(model_name))
         sys.exit()
