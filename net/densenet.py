@@ -319,14 +319,13 @@ def DenseNet_m(input_shape=None, depth=40, nb_dense_block=3, growth_rate=12, nb_
 
 class DenseNet():
     @staticmethod
-    def build(width, height, depth, classes):
-        # create img_input
-        img_dim = (width, height, depth)
+    def build(input_shape, nb_classes, dense_layers=2, 
+              hidden_units=4096, dropout_rate=0.5, subsample_initial_block=False):
         depth = 40
         nb_dense_block = 3
         growth_rate = 12
         nb_filter = -1
         dropout_rate = 0.0 # 0.0 for data augmentation
-        model = DenseNet_m(img_dim, classes=classes, depth=depth, nb_dense_block=nb_dense_block,
+        model = DenseNet_m(input_shape, classes=nb_classes, depth=depth, nb_dense_block=nb_dense_block,
                           growth_rate=growth_rate, nb_filter=nb_filter, dropout_rate=dropout_rate, weights=None)
         return model

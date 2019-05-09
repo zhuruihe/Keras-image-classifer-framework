@@ -28,6 +28,30 @@ def Conv_Block(inputs, nb_filter, kernel_size, strides=(1,1), with_conv_shortcut
         x = add([x, inputs])
         return x
     
+def ResNet18(input_shape, nb_classes):
+    inputs = Input(shape=input_shape)
+    x = Conv2D_BN(inputs, nb_filter=64, kernel_size=(3,3), strides=(1,1), padding='same')
+    x = Conv_Block(x, nb_filter=[64, 64, 256], kernel_size=(3,3), strides=(1,1), with_conv_shortcut=True)
+    x = Conv_Block(x, nb_filter=[64, 64, 256], kernel_size=(3,3))
+    
+    x = Conv_Block(x, nb_filter=[128, 128, 512], kernel_size=(3,3), strides=(1,1), with_conv_shortcut=True)
+    x = Conv_Block(x, nb_filter=[128, 128, 512], kernel_size=(3,3))
+    
+    x = Conv_Block(x, nb_filter=[256, 256, 1024], kernel_size=(3,3), strides=(2,2), with_conv_shortcut=True)
+    # 14, 14, 1024
+    x = Conv_Block(x, nb_filter=[256, 256, 1024], kernel_size=(3,3))
+    
+    x = Conv_Block(x, nb_filter=[512, 512, 2048], kernel_size=(3,3), strides=(2,2), with_conv_shortcut=True)
+    # 7, 7, 2048
+    x = Conv_Block(x, nb_filter=[512, 512, 2048], kernel_size=(3,3))
+    
+    x = AveragePooling2D(pool_size=(8,8))(x)
+    x = Flatten()(x)
+    x = Dense(nb_classes, activation='softmax')(x)
+    
+    model = Model(inputs=inputs, outputs=x)
+    return model
+    
 def ResNet50(width, height, depth, classes):
     inputs = Input(shape=(width, height, depth))
     x = ZeroPadding2D((3,3), data_format='channels_last')(inputs)
@@ -41,6 +65,7 @@ def ResNet50(width, height, depth, classes):
     x = Conv_Block(x, nb_filter=[64, 64, 256], kernel_size=(3,3))
     
     x = Conv_Block(x, nb_filter=[128, 128, 512], kernel_size=(3,3), strides=(2,2), with_conv_shortcut=True)
+    
     # 28, 28, 512
     x = Conv_Block(x, nb_filter=[128, 128, 512], kernel_size=(3,3))
     x = Conv_Block(x, nb_filter=[128, 128, 512], kernel_size=(3,3))
@@ -68,6 +93,6 @@ def ResNet50(width, height, depth, classes):
 
 class ResNet():
     @staticmethod
-    def build(width, height, depth, classes):
-        model = ResNet50(width, height, depth, classes)
+    def build(input_shape, nb_classes):
+        model = ResNet18(input_shape, nb_classes)
         return model

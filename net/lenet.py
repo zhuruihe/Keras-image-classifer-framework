@@ -5,10 +5,10 @@ from keras import backend as K
 
 class LeNet:
     @staticmethod
-    def build(width, height, depth, classes):
+    def build(input_shape, classes):
         # initialize the model
         model = Sequential()
-        input_shape = (height, width, depth)
+        input_shape = input_shape
         # if we are using "channels last", update the input shape
         if K.image_data_format() == "channels_first":
             # for tensorflow 

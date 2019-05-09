@@ -4,86 +4,89 @@ from keras.layers.core import Activation, Flatten, Dense, Dropout
 from keras import backend as K
 from keras.applications.vgg16 import VGG16
 
+def vgg_block(num_convs, num_channels, k_size):
+    blk = Sequential()
+    for _ in range(num_convs):
+        blk.add(Conv2D(num_channels, (k_size,k_size), strides=(1,1), 
+                       padding='same', activation='relu', kernel_initializer='uniform'))
+        
+    blk.add( MaxPooling2D(pool_size=(2,2), strides=(2,2)) )
+    return blk
+
 class Vgg16():
     @staticmethod
-    def build(width, height, depth, classes):
+    def build(input_shape, nb_classes, dense_layers=2, 
+          hidden_units=4096, dropout_rate=0.5, sc_ratio=None):
         model = Sequential()
-        model.add( Conv2D(64, (3,3), strides=(1,1), input_shape=(width,height,depth), padding='same', activation='relu', kernel_initializer='uniform') )
-        model.add( Conv2D(64, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform') )
-        model.add( MaxPooling2D(pool_size=(2,2)) )
-        # 64, 112, 112
-        model.add( Conv2D(128, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(128, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 128, 56, 56
-        model.add( Conv2D(256, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(256, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(256, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 256, 28, 28
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 512, 14, 14
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 512, 7, 7
+        
+        model.add(Conv2D(64, (11,11), strides=(1,1),
+                         padding='same', activation='relu', kernel_initializer='uniform', input_shape=input_shape))
+        model.add(Conv2D(64, (11,11), strides=(1,1),
+                         padding='same', activation='relu', kernel_initializer='uniform'))
+        model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)) )
+        
+        conv_arch = ((2, 128, 5), (3, 256, 3), (3, 512, 3), (3, 512, 3))
+        
+        if sc_ratio:
+            conv_arch = ((2, 128//sc_ratio, 5), (3, 256//sc_ratio, 3), (3, 512//sc_ratio, 3), (3, 512//sc_ratio, 3))
+        
+        for (num_convs, num_channels, k_size) in conv_arch:
+            model.add( vgg_block(num_convs, num_channels, k_size) )
+            
         model.add( Flatten())
-        model.add( Dense(4096, activation='relu'))
-        model.add( Dropout(0.5))
-        model.add( Dense(4096, activation='relu'))
-        model.add( Dropout(0.5))
-        model.add( Dense(classes, activation='softmax'))
-
+        
+        for i in range(dense_layers):
+            model.add( Dense(hidden_units, activation='relu'))
+            model.add( Dropout(dropout_rate))
+        
+        model.add( Dense(nb_classes, activation='softmax'))
+        
         return model
     
 class Vgg11():
     @staticmethod
-    def build(width, height, depth, classes):
+    def build(input_shape, nb_classes, dense_layers=2, 
+          hidden_units=4096, dropout_rate=0.5, sc_ratio=None):
+        
         model = Sequential()
-        model.add( Conv2D(64, (11,11), strides=(1,1), input_shape=(width,height,depth), padding='same', activation='relu', kernel_initializer='uniform') )
-        model.add( MaxPooling2D(pool_size=(2,2)) )
-        # 64, 112, 112
-        model.add( Conv2D(128, (5,5), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 128, 56, 56
-        model.add( Conv2D(256, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(256, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 256, 28, 28
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 512, 14, 14
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( Conv2D(512, (3,3), strides=(1,1), padding='same', activation='relu', kernel_initializer='uniform'))
-        model.add( MaxPooling2D(pool_size=(2,2)))
-        # 512, 7, 7
+        
+        conv_arch = ((1, 128, 5), (2, 256, 3), (2, 512, 3), (2, 512, 3)) 
+        
+        if sc_ratio:
+            conv_arch = ((1, 128//sc_ratio, 5), (2, 256//sc_ratio, 3), (2, 512//sc_ratio, 3), (2, 512//sc_ratio, 3))
+
+        model.add(Conv2D(64, (11, 11), strides=(1,1), input_shape=input_shape, 
+                         padding='same', activation='relu', kernel_initializer='uniform'))
+        model.add(MaxPooling2D(pool_size=(2,2), strides=(2,2)) )
+        
+        for (num_convs, num_channels, k_size) in conv_arch:
+            model.add(vgg_block(num_convs, num_channels, k_size))
+        
         model.add( Flatten())
-        model.add( Dense(1024, activation='relu'))
-        model.add( Dropout(0.5))
-        model.add( Dense(1024, activation='relu'))
-        model.add( Dropout(0.5))
-        model.add( Dense(classes, activation='softmax'))
+        
+        for i in range(dense_layers):
+            model.add( Dense(hidden_units, activation='relu'))
+            model.add( Dropout(dropout_rate))
+        
+        model.add( Dense(nb_classes, activation='softmax'))
 
         return model
     
-class Vgg16_keras():
+class Vgg16_imageNet():
     @staticmethod
-    def build(width, height, depth, classes):
-        base_model = VGG16(include_top=False, weights=None, input_shape=(width, height, depth))
-        # base_model.summary()
+    def build(input_shape, nb_classes, dense_layers=2, 
+              hidden_units=4096, dropout_rate=0.5, weights=None):
+        
+        base_model = VGG16(include_top=False, weights=weights, input_shape=input_shape)
 
         top_model = Sequential()
         top_model.add(Flatten(input_shape=base_model.output_shape[1:]))
-#         top_model.add(Dense(4096, activation='relu'))
-#         top_model.add(Dropout(0.5))
-        top_model.add(Dense(1024, activation='relu'))
-        top_model.add(Dropout(0.5))
-        top_model.add(Dense(classes, activation='softmax'))
+
+        for i in range(dense_layers):
+            top_model.add(Dense(hidden_units, activation='relu'))
+            top_model.add(Dropout(dropout_rate))
+
+        top_model.add(Dense(nb_classes, activation='softmax'))
         # top_model.summary()
 
         full_model = Sequential()
